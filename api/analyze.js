@@ -11,18 +11,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Gunakan method POST" });
   }
 
-  const { search_history } = req.body;
+  const { activities } = req.body;
 
-  if (!search_history) {
-    return res.status(400).json({
-      error: "Riwayat pencarian film kosong"
-    });
-  }
-
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error: "OPENAI_API_KEY belum diatur di Environment Variables Vercel"
-    });
+  if (!activities) {
+    return res.status(400).json({ error: "Data aktivitas kosong" });
   }
 
   try {
@@ -35,19 +27,14 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         input: `
-Berikut adalah riwayat pencarian film atau genre dari pengguna:
+Berikut adalah daftar aktivitas harian mahasiswa:
 
-${search_history}
+${activities}
 
-Tolong berikan rekomendasi film yang cocok berdasarkan riwayat tersebut.
-
-Format jawaban:
-1. Analisis singkat selera pengguna
-2. 5 rekomendasi film yang cocok
-3. Alasan singkat untuk setiap rekomendasi
-4. Saran genre tambahan yang mungkin disukai
-
-Gunakan bahasa Indonesia yang sederhana, rapi, dan mudah dipahami.
+Tolong simpulkan pola aktivitas tersebut.
+Beri penilaian apakah mahasiswa cenderung rajin, seimbang, kurang produktif, atau perlu evaluasi.
+Berikan alasan singkat dan 2 saran perbaikan.
+Gunakan bahasa Indonesia yang sederhana.
         `
       })
     });
