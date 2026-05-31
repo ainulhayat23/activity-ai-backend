@@ -11,10 +11,18 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Gunakan method POST" });
   }
 
-  const { activities } = req.body;
+  const searchHistory = req.body.search_history || req.body.activities;
 
-  if (!activities) {
-    return res.status(400).json({ error: "Data aktivitas kosong" });
+  if (!searchHistory) {
+    return res.status(400).json({
+      error: "Riwayat pencarian film kosong"
+    });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({
+      error: "OPENAI_API_KEY belum diatur di Vercel"
+    });
   }
 
   try {
@@ -27,14 +35,19 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         input: `
-Berikut adalah daftar aktivitas harian mahasiswa:
+Berikut adalah riwayat pencarian film atau genre dari pengguna:
 
-${activities}
+${searchHistory}
 
-Tolong simpulkan pola aktivitas tersebut.
-Beri penilaian apakah mahasiswa cenderung rajin, seimbang, kurang produktif, atau perlu evaluasi.
-Berikan alasan singkat dan 2 saran perbaikan.
-Gunakan bahasa Indonesia yang sederhana.
+Tolong berikan rekomendasi film yang cocok berdasarkan riwayat tersebut.
+
+Format jawaban:
+1. Analisis singkat selera pengguna
+2. 5 rekomendasi film yang cocok
+3. Alasan singkat untuk setiap rekomendasi
+4. Saran genre tambahan yang mungkin disukai
+
+Gunakan bahasa Indonesia yang sederhana, rapi, dan mudah dipahami.
         `
       })
     });
@@ -60,6 +73,8 @@ Gunakan bahasa Indonesia yang sederhana.
     });
 
   } catch (error) {
+    console.error("Analyze error:", error);
+
     return res.status(500).json({
       error: "Gagal menghubungi AI"
     });
