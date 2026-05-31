@@ -11,43 +11,40 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Gunakan method POST" });
   }
 
-  const { activities } = req.body;
+  const { themes } = req.body;
 
-  if (!activities) {
-    return res.status(400).json({ error: "Data aktivitas kosong" });
+  if (!themes) {
+    return res.status(400).json({
+      error: "Tema atau riwayat film kosong"
+    });
+  }
+
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({
+      error: "OPENAI_API_KEY belum diatur di Environment Variables Vercel"
+    });
   }
 
   try {
     const prompt = `
-Berdasarkan aktivitas berikut:
+Buatkan sebuah poster film fiktif yang menarik berdasarkan selera film berikut:
 
-${activities}
-
-Bayangkan mahasiswa tersebut direpresentasikan sebagai seekor hewan lucu.
-
-Tentukan:
-
-- jenis hewan yang sesuai dengan kepribadian dan pola aktivitasnya
-
-- ekspresi wajah (rajin, malas, santai, lelah, fokus, dll)
-
-- gaya visual yang lucu, imut, dan menarik
-
-Buat satu gambar saja (single character), bukan banyak adegan.
+${themes}
 
 Ketentuan:
+- poster hanya 1 gambar
+- gaya sinematik dan menarik
+- terlihat seperti poster film bioskop modern
+- boleh menampilkan 1 atau beberapa elemen visual yang mewakili genre atau tema
+- jangan menampilkan logo brand resmi
+- judul film boleh fiktif
+- suasana poster harus sesuai dengan tema pencarian pengguna
+- tampilkan visual yang keren, dramatis, dan estetik
+- jika tema mengarah ke action, horor, komedi, romantis, sci-fi, atau superhero, sesuaikan nuansa posternya
+- hindari terlalu ramai
+- hasil akhir harus tampak seperti poster film premium
 
-- gaya ilustrasi kartun / chibi / cute
-
-- warna cerah dan menarik
-
-- fokus pada satu karakter utama
-
-- boleh menambahkan properti kecil (buku, HP, bantal, dll) sesuai aktivitas
-
-- jangan menampilkan teks di dalam gambar
-
-Gambar harus mencerminkan kepribadian berdasarkan aktivitas tersebut.
+Buat poster tanpa teks yang terlalu banyak. Fokus pada visual utama yang kuat.
     `;
 
     const response = await fetch("https://api.openai.com/v1/images/generations", {
@@ -71,11 +68,19 @@ Gambar harus mencerminkan kepribadian berdasarkan aktivitas tersebut.
       });
     }
 
+    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
+      return res.status(500).json({
+        error: "Respons gambar dari OpenAI tidak valid"
+      });
+    }
+
     return res.status(200).json({
       image: data.data[0].b64_json
     });
 
   } catch (error) {
+    console.error("Generate image error:", error);
+
     return res.status(500).json({
       error: "Gagal menghubungi image API"
     });
