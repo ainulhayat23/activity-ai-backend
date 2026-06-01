@@ -19,12 +19,6 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(500).json({
-      error: "OPENAI_API_KEY belum diatur di Environment Variables Vercel"
-    });
-  }
-
   try {
     const prompt = `
 Buatkan sebuah poster film fiktif yang menarik berdasarkan selera film berikut:
@@ -43,39 +37,26 @@ Ketentuan:
 - jika tema mengarah ke action, horor, komedi, romantis, sci-fi, atau superhero, sesuaikan nuansa posternya
 - hindari terlalu ramai
 - hasil akhir harus tampak seperti poster film premium
+- tanpa terlalu banyak teks
+- fokus pada visual utama yang kuat
+    `.trim();
 
-Buat poster tanpa teks yang terlalu banyak. Fokus pada visual utama yang kuat.
-    `;
+    const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
 
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-image-1",
-        prompt: prompt,
-        size: "1024x1024"
-      })
-    });
+    const imageResponse = await fetch(imageUrl);
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      return res.status(response.status).json({
-        error: data.error?.message || "Gagal membuat gambar"
+    if (!imageResponse.ok) {
+      return res.status(imageResponse.status).json({
+        error: "Gagal membuat poster dari image API gratis"
       });
     }
 
-    if (!data.data || !data.data[0] || !data.data[0].b64_json) {
-      return res.status(500).json({
-        error: "Respons gambar dari OpenAI tidak valid"
-      });
-    }
+    const arrayBuffer = await imageResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Image = buffer.toString("base64");
 
     return res.status(200).json({
-      image: data.data[0].b64_json
+      image: base64Image
     });
 
   } catch (error) {
