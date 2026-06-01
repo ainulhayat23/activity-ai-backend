@@ -19,22 +19,14 @@ export default async function handler(req, res) {
     });
   }
 
-  if (!process.env.OPENAI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY) {
     return res.status(500).json({
-      error: "OPENAI_API_KEY belum diatur di Vercel"
+      error: "GEMINI_API_KEY belum diatur di Vercel"
     });
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "gpt-4.1-mini",
-        input: `
+    const prompt = `
 Berikut adalah riwayat pencarian film atau genre dari pengguna:
 
 ${searchHistory}
@@ -48,25 +40,42 @@ Format jawaban:
 4. Saran genre tambahan yang mungkin disukai
 
 Gunakan bahasa Indonesia yang sederhana, rapi, dan mudah dipahami.
-        `
-      })
-    });
+    `;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt
+                }
+              ]
+            }
+          ]
+        })
+      }
+    );
 
     const data = await response.json();
 
     if (!response.ok) {
       return res.status(response.status).json({
-        error: data.error?.message || "Gagal mendapatkan respons dari OpenAI"
+        error:
+          data.error?.message ||
+          "Gagal mendapatkan respons dari Gemini"
       });
     }
 
-    let text = "";
-
-    try {
-      text = data.output[0].content[0].text;
-    } catch (e) {
-      text = JSON.stringify(data);
-    }
+    const text =
+      data.candidates?.[0]?.content?.parts?.[0]?.text ||
+      "Gemini tidak memberikan rekomendasi.";
 
     return res.status(200).json({
       result: text
@@ -76,7 +85,7 @@ Gunakan bahasa Indonesia yang sederhana, rapi, dan mudah dipahami.
     console.error("Analyze error:", error);
 
     return res.status(500).json({
-      error: "Gagal menghubungi AI"
+      error: "Gagal menghubungi Gemini AI"
     });
   }
 }
