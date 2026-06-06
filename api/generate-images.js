@@ -10,15 +10,13 @@ export default async function handler(req, res) {
   const { themes } = req.body;
 
   if (!themes) {
-    return res.status(400).json({
-      error: "Tema atau riwayat film kosong"
-    });
+    return res.status(400).json({ error: "Tema atau riwayat film kosong" });
   }
 
   try {
-    // Prompt untuk AI
+    // Prompt Pollinations
     const prompt = `
-Buatkan sebuah poster film fiktif yang menarik berdasarkan selera film berikut:
+Buatkan sebuah poster film fiktif berdasarkan selera film berikut:
 
 ${themes}
 
@@ -38,7 +36,6 @@ Ketentuan:
 - fokus pada visual utama yang kuat
 `.trim();
 
-    // Pollinations API gratis
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1024&height=1024&nologo=true`;
 
     const imageResponse = await fetch(imageUrl);
@@ -53,15 +50,10 @@ Ketentuan:
     const buffer = Buffer.from(arrayBuffer);
     const base64Image = buffer.toString("base64");
 
-    return res.status(200).json({
-      image: base64Image
-    });
+    return res.status(200).json({ image: base64Image });
 
   } catch (error) {
     console.error("Generate image error:", error);
-
-    return res.status(500).json({
-      error: "Gagal menghubungi image API"
-    });
+    return res.status(500).json({ error: "Gagal menghubungi image API" });
   }
 }
